@@ -55,18 +55,39 @@ export interface BackendHealth {
   timestamp: string;
 }
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+function resolveApiBaseUrl(): string {
+  const envUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (envUrl) {
+    let clean = envUrl.replace(/\/+$/, '');
+    // Si la web corre en HTTPS (Vercel) y la URL del backend empieza por http://, forzar https:// para evitar que el navegador bloquee por Mixed Content
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && clean.startsWith('http://')) {
+      clean = clean.replace(/^http:\/\//, 'https://');
+    }
+    return clean;
+  }
+  return 'http://localhost:5000';
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 /** Verifica disponibilidad del backend Flask / Render (permite hasta 15s si Render está en cold start) */
-export async function checkBackendHealth(timeoutMs = 8000): Promise<BackendHealth | null> {
+export async function checkBackendHealth(timeoutMs = 12000): Promise<BackendHealth | null> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(`${API_BASE_URL}/health`, { signal: controller.signal });
+    const res = await fetch(`${API_BASE_URL}/health`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
+    });
     clearTimeout(timeoutId);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[ML API Health] Respuesta no exitosa: HTTP ${res.status}`);
+      return null;
+    }
     return await res.json();
-  } catch {
+  } catch (err: any) {
+    console.warn(`[ML API Health] No se pudo contactar a ${API_BASE_URL}/health:`, err?.message || err);
     return null;
   }
 }

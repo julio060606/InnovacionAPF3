@@ -1,0 +1,19 @@
+# Backend: Flask API + Machine Learning (Scikit-learn)
+# Proyecto: Sistema de Inventario Inteligente Tiendas 3A (UTP - APF3)
+
+flask>=3.0.0
+flask-cors>=4.0.0
+python-dotenv>=1.0.0
+gunicorn>=21.2.0
+
+# Librerías de Machine Learning y Análisis de Datos (Eje Central U3 / APF3)
+scikit-learn>=1.4.0
+pandas>=2.2.0
+numpy>=1.26.0
+joblib>=1.3.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Conexión Base de Datos Cloud (Supabase PostgreSQL)
+psycopg2-binary>=2.9.9
+requests>=2.31.0

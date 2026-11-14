@@ -28,8 +28,19 @@ if sys.stdout.encoding != 'utf-8':
         pass
 
 app = Flask(__name__)
-# Permitir peticiones desde localhost (Vite) y el dominio en producción de Vercel
-CORS(app, resources={r"/*": {"origins": "*"}})
+# Permitir peticiones desde cualquier origen (Vercel, localhost, etc.)
+CORS(app, resources={r"/*": {
+    "origins": "*",
+    "methods": ["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+    "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+}})
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+    return response
 
 # Rutas de archivos
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -65,9 +76,11 @@ def get_db_connection():
 # ENDPOINTS REST (CONTRATO DE INTEGRACIÓN - SECCIÓN 6.3)
 # =============================================================================
 
-@app.route("/", methods=["GET"])
-@app.route("/health", methods=["GET"])
+@app.route("/", methods=["GET", "OPTIONS"])
+@app.route("/health", methods=["GET", "OPTIONS"])
 def health():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     """Healthcheck del servicio y verificación del modelo y base de datos."""
     db_ok = False
     conn = get_db_connection()
@@ -91,8 +104,10 @@ def health():
         "timestamp": datetime.datetime.now().isoformat()
     }), 200
 
-@app.route("/api/predict", methods=["POST"])
+@app.route("/api/predict", methods=["POST", "OPTIONS"])
 def predict():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     """
     CONTRATO DE INTEGRACIÓN (Sección 6.3):
     Recibe un registro de producto desde el MVP y devuelve la inferencia del modelo
